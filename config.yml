@@ -1,0 +1,14 @@
+server:
+  Host: "localhost"
+  Port: "8080"
+  LoggingLevel: "debug"
+  ReadTimeout: "15s"
+  WriteTimeout: "15s"
+
+postgres:
+  PostgreSQLHost: "localhost"
+  PostgreSQLPort: "5432"
+  PostgreSQLUser: "postgres"
+  PostgreSQLPassword: "root"
+  PostgreSQLDBName: "cryptogo_db"
+  PgDriver: "pgx"
