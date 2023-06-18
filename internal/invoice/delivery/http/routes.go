@@ -6,7 +6,7 @@ import (
 	"Cryptogo/internal/invoice"
 )
 
-func MapInvoiceRoutes(invoiceGroup *gin.RouterGroup, h invoice.Handlers) {
-	invoiceGroup.POST(createInvoiceEndpoint, h.Create())
-	invoiceGroup.GET(checkInvoiceEndpoint, h.Check())
+func MapInvoiceRoutes(group *gin.RouterGroup, h invoice.Handlers) {
+	group.POST(createInvoiceEndpoint, h.Create())
+	group.GET(checkInvoiceEndpoint, h.Check())
 }

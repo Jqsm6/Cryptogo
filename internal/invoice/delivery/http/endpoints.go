@@ -1,6 +1,6 @@
 package http
 
 const (
-	createInvoiceEndpoint = "/create"
-	checkInvoiceEndpoint  = "/check"
+	createInvoiceEndpoint = "/invoice/create"
+	checkInvoiceEndpoint  = "/invoice/check"
 )

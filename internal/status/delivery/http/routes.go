@@ -6,6 +6,6 @@ import (
 	"Cryptogo/internal/status"
 )
 
-func MapStatusRoutes(statusGroup *gin.RouterGroup, h status.Handlers) {
-	statusGroup.GET(statusAPIEndpoint, h.GetAPIStatus())
+func MapStatusRoutes(group *gin.RouterGroup, h status.Handlers) {
+	group.GET(statusAPIEndpoint, h.GetAPIStatus())
 }

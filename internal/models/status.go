@@ -1,5 +1,5 @@
 package models
 
 type APIStatus struct {
-	StatusETH string `json:"eth_status"`
+	StatusETH string `json:"eth"`
 }

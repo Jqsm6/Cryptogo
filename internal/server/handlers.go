@@ -20,11 +20,11 @@ func (s *Server) MapHandlers(g *gin.Engine) {
 	iHandlers := invoiceHandlers.NewInvoiceHandlers(iUC, s.log)
 	sHandlers := statusHandlers.NewStatusHandlers(sUC, s.log)
 
-	invoiceGroup := g.Group("/invoice")
-	statusGroup := g.Group("/status")
-	statusGroup.Use(gin.Logger())
-	invoiceGroup.Use(gin.Logger())
+	defaultGroup := g.Group("/")
+	versionGroup := g.Group("/v1")
+	versionGroup.Use(gin.Logger())
+	defaultGroup.Use(gin.Logger())
 
-	invoiceHandlers.MapInvoiceRoutes(invoiceGroup, iHandlers)
-	statusHandlers.MapStatusRoutes(statusGroup, sHandlers)
+	invoiceHandlers.MapInvoiceRoutes(versionGroup, iHandlers)
+	statusHandlers.MapStatusRoutes(defaultGroup, sHandlers)
 }

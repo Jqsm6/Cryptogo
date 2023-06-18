@@ -16,10 +16,10 @@ type PaymentInfoRequest struct {
 }
 
 type PaymentInfoResponse struct {
+	Status    int    `json:"status"`
 	Currency  string `json:"currency"`
 	Amount    string `json:"amount"`
 	ToAddress string `json:"to_address"`
-	Status    int    `json:"status"`
 }
 
 type PaymentDB struct {
