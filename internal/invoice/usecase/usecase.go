@@ -34,7 +34,7 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	case "ETH":
 		privateKey, err := crypto.GenerateKey()
 		if err != nil {
-			cuc.log.Info().Err(err)
+			cuc.log.Info().Err(err).Msg("usecase")
 			return nil, err
 		}
 
@@ -63,7 +63,6 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 
 	err := cuc.repo.Create(ctx, &pdm)
 	if err != nil {
-		cuc.log.Info().Err(err)
 		return nil, err
 	}
 
@@ -86,6 +85,7 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 	case "ETH":
 		result, err := infoETH(pirp)
 		if err != nil {
+			cuc.log.Info().Err(err).Msg("usecase")
 			return nil, err
 		}
 
@@ -99,4 +99,13 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 	}
 
 	return pirp, nil
+}
+
+func (cuc *invoiceUseCase) CheckID(ctx context.Context, id string) (bool, error) {
+	result, err := cuc.repo.CheckID(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
 }

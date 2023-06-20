@@ -21,7 +21,7 @@ func (suc *statusUseCase) GetAPIStatus() *models.Status {
 
 	ethResp, err := http.Get(ethAPI)
 	if err != nil {
-		suc.log.Err(err)
+		suc.log.Info().Err(err).Msg("usecase")
 	}
 	defer ethResp.Body.Close()
 

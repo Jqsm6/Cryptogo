@@ -22,19 +22,26 @@ func NewInvoiceHandlers(invoiceUC invoice.UseCase, log *logger.Logger) invoice.H
 func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var prqm *models.PaymentRequest
+		var em models.ErrorResponse
 
 		if err := ctx.BindJSON(&prqm); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+			em.Error.Code = http.StatusBadRequest
+			em.Error.Message = "Invalid request body. Use the documentation."
+			ctx.JSON(http.StatusBadRequest, &em)
 			return
 		}
 		if prqm.Currency != "ETH" {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "only 'ETH' is available"})
+			em.Error.Code = http.StatusBadRequest
+			em.Error.Message = "At the moment, only 'ETH' is available."
+			ctx.JSON(http.StatusBadRequest, &em)
 			return
 		}
 
 		resp, err := ch.invoiceUC.Create(ctx, prqm)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to create invoice"})
+			em.Error.Code = http.StatusInternalServerError
+			em.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &em)
 			return
 		}
 
@@ -45,15 +52,35 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 func (ch *invoiceHandlers) Info() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var pirq *models.PaymentInfoRequest
+		var em models.ErrorResponse
 
 		if err := ctx.BindJSON(&pirq); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+			em.Error.Code = http.StatusBadRequest
+			em.Error.Message = "Invalid request body. Use the documentation."
+			ctx.JSON(http.StatusBadRequest, &em)
+			return
+		}
+
+		result, err := ch.invoiceUC.CheckID(ctx, pirq.ID)
+		if err != nil {
+			em.Error.Code = http.StatusInternalServerError
+			em.Error.Message = "It was not possible to check the ID for existence. Server side error."
+			ctx.JSON(http.StatusInternalServerError, &em)
+			return
+		}
+
+		if !result {
+			em.Error.Code = http.StatusBadRequest
+			em.Error.Message = "Invoice with this ID was not found."
+			ctx.JSON(http.StatusBadRequest, &em)
 			return
 		}
 
 		resp, err := ch.invoiceUC.Info(ctx, pirq)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "there was an error, or the invoice could not be found."})
+			em.Error.Code = http.StatusInternalServerError
+			em.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &em)
 			return
 		}
 

@@ -5,4 +5,5 @@ const (
 	VALUES ($1, $2, $3, $4, $5, $6)`
 	infoInvoice                = `SELECT state, to_address, amount, currency FROM payments WHERE invoice_id = $1`
 	changeInvoiceState = `UPDATE payments SET state = 'paid' WHERE invoice_id = $1`
+	checkID = "SELECT COUNT(*) FROM payments WHERE invoice_id = $1"
 )

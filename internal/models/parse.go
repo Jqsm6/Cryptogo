@@ -5,3 +5,7 @@ type ETHBalance struct {
 		Balance int `json:"balance"`
 	} `json:"ETH"`
 }
+
+type CountID struct {
+	Count int `pg:"count"`
+}

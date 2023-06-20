@@ -23,7 +23,7 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.State, pdm.Currency, pdm.Amount,
 		pdm.ToAddress, pdm.PrivateKey)
 	if row.Err() != nil {
-		ir.log.Info().Err(row.Err())
+		ir.log.Info().Err(row.Err()).Msg("repository")
 		return row.Err()
 	}
 
@@ -35,7 +35,7 @@ func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfo
 
 	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
 	if err != nil {
-		ir.log.Info().Err(err)
+		ir.log.Info().Err(err).Msg("repository")
 		return nil, err
 	}
 
@@ -45,9 +45,24 @@ func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfo
 func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
 	row := ir.db.QueryRowContext(ctx, changeInvoiceState, id)
 	if row.Err() != nil {
-		ir.log.Info().Err(row.Err())
+		ir.log.Info().Err(row.Err()).Msg("repository")
 		return row.Err()
 	}
 
 	return nil
+}
+
+func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
+	var cm models.CountID
+	err := ir.db.QueryRowContext(ctx, checkID, id).Scan(&cm.Count)
+	if err != nil {
+		ir.log.Info().Err(err).Msg("repository")
+		return false, err
+	}
+
+	if cm.Count == 1 {
+		return true, nil
+	}
+
+	return false, nil
 }
