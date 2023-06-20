@@ -21,7 +21,7 @@ func NewInvoiceRepository(db *sqlx.DB, log *logger.Logger) invoice.Repository {
 
 func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error {
 	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.State, pdm.Currency, pdm.Amount,
-		pdm.ToAddress, pdm.PrivateKey)
+		pdm.ToAddress, pdm.FromAddress)
 	if row.Err() != nil {
 		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()
@@ -33,7 +33,7 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfoResponse, error) {
 	var pirp models.PaymentInfoResponse
 
-	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.ID, &pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
+	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.ID, &pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency, &pirp.FromAddress)
 	if err != nil {
 		ir.log.Err(err).Msg("repository")
 		return nil, err
@@ -65,16 +65,4 @@ func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-func (ir *invoiceRepo) GetPrivateKey(id string) (string, error) {
-	var privateKey string
-
-	err := ir.db.QueryRow(getPrivateKey, id).Scan(&privateKey)
-	if err != nil {
-		ir.log.Err(err).Msg("repository")
-		return "", err
-	}
-
-	return privateKey, nil
 }

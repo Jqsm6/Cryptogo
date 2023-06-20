@@ -9,3 +9,9 @@ type ETHBalance struct {
 type CountID struct {
 	Count int `pg:"count"`
 }
+
+type Transaction struct {
+	From    string  `json:"from"`
+	Value   float64 `json:"value"`
+	Success bool    `json:"success"`
+}

@@ -1,8 +1,9 @@
 package models
 
 type PaymentRequest struct {
-	Currency string `json:"currency"`
-	Amount   string `json:"amount"`
+	Currency    string  `json:"currency"`
+	Amount      float64 `json:"amount"`
+	FromAddress string  `json:"from_address"`
 }
 
 type PaymentResponse struct {
@@ -15,18 +16,19 @@ type PaymentInfoRequest struct {
 }
 
 type PaymentInfoResponse struct {
-	ID        string `json:"id"`
-	State     string `json:"state"`
-	Currency  string `json:"currency"`
-	Amount    string `json:"amount"`
-	ToAddress string `json:"to_address"`
+	ID          string `json:"id"`
+	State       string `json:"state"`
+	Currency    string `json:"currency"`
+	Amount      string `json:"amount"`
+	ToAddress   string `json:"to_address"`
+	FromAddress string `json:"from_address"`
 }
 
 type PaymentDB struct {
-	ID         string `pg:"invoice_id"`
-	State      string `pg:"state"`
-	Currency   string `pg:"currency"`
-	Amount     string `pg:"amount"`
-	ToAddress  string `pg:"to_address"`
-	PrivateKey string `pg:"private_key"`
+	ID          string `pg:"invoice_id"`
+	State       string `pg:"state"`
+	Currency    string `pg:"currency"`
+	Amount      string `pg:"amount"`
+	ToAddress   string `pg:"to_address"`
+	FromAddress string `pg:"from_adress"`
 }

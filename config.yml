@@ -14,5 +14,4 @@ postgres:
   PgDriver: "pgx"
 
 data:
-  AlchemyKey: "j8qPCa7TcWrZwRgVIBQlCklUQSikXrAV"
-  ETHRecipient: "0xCf3527c454eee6B47133254aD6D49b2AAf4D6Ba6"
+  ETHRecipient: "0xb000c15b40b0da131ceac414ef5a0d73d9e9742e"

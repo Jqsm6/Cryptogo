@@ -11,5 +11,4 @@ type Repository interface {
 	Info(ctx context.Context, id string) (*models.PaymentInfoResponse, error)
 	ChangeStatus(ctx context.Context, id string) error
 	CheckID(ctx context.Context, id string) (bool, error)
-	GetPrivateKey(id string) (string, error)
 }

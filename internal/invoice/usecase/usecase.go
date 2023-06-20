@@ -2,20 +2,13 @@ package usecase
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rs/xid"
 
 	"Cryptogo/config"
@@ -39,38 +32,21 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 
 	guid := xid.New().String()
 
-	var privateKeyBytes []byte
-	var address string
-
 	switch prqm.Currency {
 	case "ETH":
-		privateKey, err := crypto.GenerateKey()
-		if err != nil {
-			cuc.log.Err(err).Msg("usecase")
-			return nil, err
-		}
-
-		privateKeyBytes = crypto.FromECDSA(privateKey)
-
-		publicKey := privateKey.Public()
-		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-		if !ok {
-			cuc.log.Info().Msg("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-			return nil, err
-		}
-		address = crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
-
-		prpm.ID = guid
-		prpm.ToAddress = address
+		prpm.ToAddress = cuc.cfg.ETHRecipient
 	}
 
+	prpm.ID = guid
+
+	strAmount := strconv.FormatFloat(prqm.Amount, 'f', -1, 64)
 	pdm := models.PaymentDB{
-		ID:         guid,
-		State:      "notpayed",
-		Currency:   prqm.Currency,
-		Amount:     prqm.Amount,
-		ToAddress:  address,
-		PrivateKey: hexutil.Encode(privateKeyBytes),
+		ID:          guid,
+		State:       "notpayed",
+		Currency:    prqm.Currency,
+		Amount:      strAmount,
+		ToAddress:   prpm.ToAddress,
+		FromAddress: prqm.FromAddress,
 	}
 
 	err := cuc.repo.Create(ctx, &pdm)
@@ -113,9 +89,9 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 }
 
 func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, error) {
-	var em *models.ETHBalance
+	var tm []*models.Transaction
 
-	url := fmt.Sprintf("https://api.ethplorer.io/getAddressInfo/%s?apiKey=freekey", pirp.ToAddress)
+	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=freekey", cuc.cfg.ETHRecipient)
 	resp, err := http.Get(url)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
@@ -133,20 +109,17 @@ func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, erro
 		return false, err
 	}
 
-	err = json.Unmarshal(body, &em)
+	err = json.Unmarshal(body, &tm)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
 		return false, err
 	}
 
-	balance := strconv.Itoa(em.ETH.Balance)
-
-	if balance == pirp.Amount {
-		err = cuc.WithdrawETH(pirp)
-		if err != nil {
-			return false, err
+	for _, t := range tm {
+		str := strconv.FormatFloat(t.Value, 'f', -1, 64)
+		if t.From == pirp.FromAddress && str == pirp.Amount {
+			return true, nil
 		}
-		return true, nil
 	}
 
 	return false, nil
@@ -159,67 +132,4 @@ func (cuc *invoiceUseCase) CheckID(ctx context.Context, id string) (bool, error)
 	}
 
 	return result, nil
-}
-
-func (cuc *invoiceUseCase) WithdrawETH(pirp *models.PaymentInfoResponse) error {
-	key, err := cuc.repo.GetPrivateKey(pirp.ID)
-	if err != nil {
-		return err
-	}
-	key = key[2:]
-
-	privateKey, err := crypto.HexToECDSA(key)
-	if err != nil {
-		println(1)
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	client, err := ethclient.Dial(fmt.Sprintf("https://eth-mainnet.g.alchemy.com/v2/%s", cuc.cfg.AlchemyKey))
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	toAddress := common.HexToAddress(pirp.ToAddress)
-	value, _ := new(big.Int).SetString(pirp.Amount, 16)
-
-	gasLimit := uint64(21000)
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	var data []byte
-	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
-
-	signedTx, err := types.SignTx(tx, types.HomesteadSigner{}, privateKey)
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	err = client.SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return err
-	}
-
-	cuc.log.Info().Msgf("Transaction is complete. Hash: %s", signedTx.Hash().Hex())
-	return nil
 }
