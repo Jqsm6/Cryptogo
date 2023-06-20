@@ -15,6 +15,7 @@ type PaymentInfoRequest struct {
 }
 
 type PaymentInfoResponse struct {
+	ID        string `json:"id"`
 	State     string `json:"state"`
 	Currency  string `json:"currency"`
 	Amount    string `json:"amount"`

@@ -23,7 +23,7 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.State, pdm.Currency, pdm.Amount,
 		pdm.ToAddress, pdm.PrivateKey)
 	if row.Err() != nil {
-		ir.log.Info().Err(row.Err()).Msg("repository")
+		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()
 	}
 
@@ -33,9 +33,9 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfoResponse, error) {
 	var pirp models.PaymentInfoResponse
 
-	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
+	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.ID, &pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
 	if err != nil {
-		ir.log.Info().Err(err).Msg("repository")
+		ir.log.Err(err).Msg("repository")
 		return nil, err
 	}
 
@@ -45,7 +45,7 @@ func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfo
 func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
 	row := ir.db.QueryRowContext(ctx, changeInvoiceState, id)
 	if row.Err() != nil {
-		ir.log.Info().Err(row.Err()).Msg("repository")
+		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()
 	}
 
@@ -56,7 +56,7 @@ func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
 	var cm models.CountID
 	err := ir.db.QueryRowContext(ctx, checkID, id).Scan(&cm.Count)
 	if err != nil {
-		ir.log.Info().Err(err).Msg("repository")
+		ir.log.Err(err).Msg("repository")
 		return false, err
 	}
 
@@ -65,4 +65,16 @@ func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (ir *invoiceRepo) GetPrivateKey(id string) (string, error) {
+	var privateKey string
+
+	err := ir.db.QueryRow(getPrivateKey, id).Scan(&privateKey)
+	if err != nil {
+		ir.log.Err(err).Msg("repository")
+		return "", err
+	}
+
+	return privateKey, nil
 }

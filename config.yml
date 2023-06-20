@@ -12,3 +12,7 @@ postgres:
   PostgreSQLPassword: "root"
   PostgreSQLDBName: "cryptogo_db"
   PgDriver: "pgx"
+
+data:
+  AlchemyKey: "j8qPCa7TcWrZwRgVIBQlCklUQSikXrAV"
+  ETHRecipient: "0xCf3527c454eee6B47133254aD6D49b2AAf4D6Ba6"

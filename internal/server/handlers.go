@@ -3,10 +3,10 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 
-	invoiceRepository "Cryptogo/internal/invoice/repository"
 	invoiceHandlers "Cryptogo/internal/invoice/delivery/http"
+	invoiceRepository "Cryptogo/internal/invoice/repository"
 	invoiceUC "Cryptogo/internal/invoice/usecase"
-	
+
 	statusHandlers "Cryptogo/internal/status/delivery/http"
 	statusUC "Cryptogo/internal/status/usecase"
 )
@@ -14,7 +14,7 @@ import (
 func (s *Server) MapHandlers(g *gin.Engine) {
 	iRepo := invoiceRepository.NewInvoiceRepository(s.db, s.log)
 
-	iUC := invoiceUC.NewInvoiceUseCase(iRepo, s.log)
+	iUC := invoiceUC.NewInvoiceUseCase(iRepo, s.log, s.cfg)
 	sUC := statusUC.NewStatusUseCase(s.log)
 
 	iHandlers := invoiceHandlers.NewInvoiceHandlers(iUC, s.log)

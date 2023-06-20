@@ -9,5 +9,7 @@ import (
 type UseCase interface {
 	Create(ctx context.Context, prqm *models.PaymentRequest) (*models.PaymentResponse, error)
 	Info(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error)
+	InfoETH(pirp *models.PaymentInfoResponse) (bool, error)
+	WithdrawETH(pirp *models.PaymentInfoResponse) error
 	CheckID(ctx context.Context, id string) (bool, error)
 }

@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Server   `yaml:"server"`
 	Postgres `yaml:"postgres"`
+	Data     `yaml:"data"`
 }
 
 type Server struct {
@@ -27,6 +28,11 @@ type Postgres struct {
 	PostgreSQLPassword string `yaml:"PostgreSQLPassword"`
 	PostgreSQLDBName   string `yaml:"PostgreSQLDBName"`
 	PgDriver           string `yaml:"PgDriver"`
+}
+
+type Data struct {
+	AlchemyKey   string `yaml:"AlchemyKey"`
+	ETHRecipient string `yaml:"ETHRecipient"`
 }
 
 var (
