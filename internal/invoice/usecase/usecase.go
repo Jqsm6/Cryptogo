@@ -31,7 +31,7 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	var address string
 
 	switch prqm.Currency {
-	case "eth":
+	case "ETH":
 		privateKey, err := crypto.GenerateKey()
 		if err != nil {
 			cuc.log.Info().Err(err)
@@ -54,10 +54,9 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 
 	pdm := models.PaymentDB{
 		ID:          guid,
-		Status:      0,
+		State:       "notpayed",
 		Currency:    prqm.Currency,
 		Amount:      prqm.Amount,
-		FromAddress: prqm.FromAddress,
 		ToAddress:   address,
 		PrivateKey:  hexutil.Encode(privateKeyBytes),
 	}
@@ -71,21 +70,21 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	return &prpm, nil
 }
 
-func (cuc *invoiceUseCase) Check(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error) {
+func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error) {
 	id := pirq.ID
 
-	pirp, err := cuc.repo.Check(ctx, id)
+	pirp, err := cuc.repo.Info(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if pirp.Status == 1 {
+	if pirp.State == "paid" {
 		return pirp, nil
 	}
 
 	switch pirp.Currency {
-	case "eth":
-		result, err := checkETHReplenishment(pirp)
+	case "ETH":
+		result, err := infoETH(pirp)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +94,7 @@ func (cuc *invoiceUseCase) Check(ctx context.Context, pirq *models.PaymentInfoRe
 			if err != nil {
 				return nil, err
 			}
-			pirp.Status = 1
+			pirp.State = "paid"
 		}
 	}
 

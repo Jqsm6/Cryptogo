@@ -27,8 +27,8 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 			return
 		}
-		if prqm.Currency != "eth" {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "only 'eth' is available"})
+		if prqm.Currency != "ETH" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "only 'ETH' is available"})
 			return
 		}
 
@@ -42,7 +42,7 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 	}
 }
 
-func (ch *invoiceHandlers) Check() gin.HandlerFunc {
+func (ch *invoiceHandlers) Info() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var pirq *models.PaymentInfoRequest
 
@@ -51,7 +51,7 @@ func (ch *invoiceHandlers) Check() gin.HandlerFunc {
 			return
 		}
 
-		resp, err := ch.invoiceUC.Check(ctx, pirq)
+		resp, err := ch.invoiceUC.Info(ctx, pirq)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "there was an error, or the invoice could not be found."})
 			return

@@ -20,7 +20,7 @@ func NewInvoiceRepository(db *sqlx.DB, log *logger.Logger) invoice.Repository {
 }
 
 func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error {
-	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.Status, pdm.Currency, pdm.Amount, pdm.FromAddress,
+	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.State, pdm.Currency, pdm.Amount,
 		pdm.ToAddress, pdm.PrivateKey)
 	if row.Err() != nil {
 		ir.log.Info().Err(row.Err())
@@ -30,10 +30,10 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 	return nil
 }
 
-func (ir *invoiceRepo) Check(ctx context.Context, id string) (*models.PaymentInfoResponse, error) {
+func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfoResponse, error) {
 	var pirp models.PaymentInfoResponse
 
-	err := ir.db.QueryRowContext(ctx, checkInvoice, id).Scan(&pirp.Status, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
+	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency)
 	if err != nil {
 		ir.log.Info().Err(err)
 		return nil, err
@@ -43,7 +43,7 @@ func (ir *invoiceRepo) Check(ctx context.Context, id string) (*models.PaymentInf
 }
 
 func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
-	row := ir.db.QueryRowContext(ctx, changeInvoiceStatusEndpoint, id)
+	row := ir.db.QueryRowContext(ctx, changeInvoiceState, id)
 	if row.Err() != nil {
 		ir.log.Info().Err(row.Err())
 		return row.Err()

@@ -11,7 +11,7 @@ import (
 	"Cryptogo/internal/models"
 )
 
-func checkETHReplenishment(pirp *models.PaymentInfoResponse) (bool, error) {
+func infoETH(pirp *models.PaymentInfoResponse) (bool, error) {
 	var ethModel *models.ETHBalance
 	url := fmt.Sprintf("https://api.ethplorer.io/getAddressInfo/%s?apiKey=freekey", pirp.ToAddress)
 	resp, err := http.Get(url)
@@ -21,7 +21,7 @@ func checkETHReplenishment(pirp *models.PaymentInfoResponse) (bool, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return false, errors.New("api not work")
+		return false, errors.New("api did not respond with a 200 code")
 	}
 
 	body, err := io.ReadAll(resp.Body)

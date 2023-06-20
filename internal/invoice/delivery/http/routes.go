@@ -8,5 +8,5 @@ import (
 
 func MapInvoiceRoutes(group *gin.RouterGroup, h invoice.Handlers) {
 	group.POST(createInvoiceEndpoint, h.Create())
-	group.GET(checkInvoiceEndpoint, h.Check())
+	group.GET(infoInvoiceEndpoint, h.Info())
 }

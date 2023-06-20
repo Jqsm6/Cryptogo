@@ -16,19 +16,19 @@ func NewStatusUseCase(log *logger.Logger) status.UseCase {
 	return &statusUseCase{log: log}
 }
 
-func (suc *statusUseCase) GetAPIStatus() *models.APIStatus {
-	asModel := models.APIStatus{}
+func (suc *statusUseCase) GetAPIStatus() *models.Status {
+	asModel := models.Status{}
 
-	ethResp, err := http.Get(ethURL)
+	ethResp, err := http.Get(ethAPI)
 	if err != nil {
 		suc.log.Err(err)
 	}
 	defer ethResp.Body.Close()
 
 	if ethResp.StatusCode == 200 {
-		asModel.StatusETH = "ok"
+		asModel.API.Status.ETH = "ok"
 	} else {
-		asModel.StatusETH = "bad"
+		asModel.API.Status.ETH = "bad"
 	}
 
 	return &asModel
