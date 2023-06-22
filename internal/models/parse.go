@@ -6,12 +6,15 @@ type ETHBalance struct {
 	} `json:"ETH"`
 }
 
-type CountID struct {
+type Count struct {
 	Count int `pg:"count"`
 }
 
-type Transaction struct {
+type ETHTransaction struct {
+	Hash    string  `json:"hash"`
 	From    string  `json:"from"`
 	Value   float64 `json:"value"`
-	Success bool    `json:"success"`
+}
+
+type BTCTransaction struct {
 }

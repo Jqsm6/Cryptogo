@@ -15,7 +15,7 @@ func (s *Server) MapHandlers(g *gin.Engine) {
 	iRepo := invoiceRepository.NewInvoiceRepository(s.db, s.log)
 
 	iUC := invoiceUC.NewInvoiceUseCase(iRepo, s.log, s.cfg)
-	sUC := statusUC.NewStatusUseCase(s.log)
+	sUC := statusUC.NewStatusUseCase(s.log, s.cfg)
 
 	iHandlers := invoiceHandlers.NewInvoiceHandlers(iUC, s.log)
 	sHandlers := statusHandlers.NewStatusHandlers(sUC, s.log)

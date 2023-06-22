@@ -11,6 +11,7 @@ type Config struct {
 	Server   `yaml:"server"`
 	Postgres `yaml:"postgres"`
 	Data     `yaml:"data"`
+	Tokens   `yaml:"tokens"`
 }
 
 type Server struct {
@@ -31,8 +32,12 @@ type Postgres struct {
 }
 
 type Data struct {
-	AlchemyKey   string `yaml:"AlchemyKey"`
 	ETHRecipient string `yaml:"ETHRecipient"`
+	BTCRecipient string `yaml:"BTCRecipient"`
+}
+
+type Tokens struct {
+	Ethplorer string `yaml:"Ethplorer"`
 }
 
 var (

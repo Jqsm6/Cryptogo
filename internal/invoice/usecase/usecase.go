@@ -35,6 +35,8 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	switch prqm.Currency {
 	case "ETH":
 		prpm.ToAddress = cuc.cfg.ETHRecipient
+	case "BTC":
+		prpm.ToAddress = cuc.cfg.BTCRecipient
 	}
 
 	prpm.ID = guid
@@ -71,7 +73,32 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 
 	switch pirp.Currency {
 	case "ETH":
-		result, err := cuc.InfoETH(pirp)
+		result, hash, err := cuc.InfoETH(pirp)
+		if err != nil {
+			return nil, err
+		}
+
+		if result {
+			resultHash, err := cuc.repo.CheckTransactionHash(context.Background(), hash)
+			if err != nil {
+				return nil, err
+			}
+
+			if !resultHash {
+				err = cuc.repo.UpdateTransactionHash(context.Background(), hash, pirp.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				err := cuc.repo.ChangeStatus(ctx, id)
+				if err != nil {
+					return nil, err
+				}
+				pirp.State = "paid"
+			}
+		}
+	case "BTC":
+		result, err := cuc.InfoBTC(pirp)
 		if err != nil {
 			return nil, err
 		}
@@ -88,41 +115,52 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 	return pirp, nil
 }
 
-func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, error) {
-	var tm []*models.Transaction
+func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, string, error) {
+	var tm []*models.ETHTransaction
 
-	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=freekey", cuc.cfg.ETHRecipient)
+	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=%s", cuc.cfg.ETHRecipient, cuc.cfg.Ethplorer)
 	resp, err := http.Get(url)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, err
+		return false, "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return false, errors.New("api did not respond with a 200 code")
+		return false, "", errors.New("api did not respond with a 200 code")
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, err
+		return false, "", err
 	}
 
 	err = json.Unmarshal(body, &tm)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, err
+		return false, "", err
 	}
 
 	for _, t := range tm {
 		str := strconv.FormatFloat(t.Value, 'f', -1, 64)
 		if t.From == pirp.FromAddress && str == pirp.Amount {
-			return true, nil
+			result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+			if err != nil {
+				return false, "", nil
+			}
+			if !result {
+				return true, t.Hash, nil
+			}
+			continue
 		}
 	}
 
-	return false, nil
+	return false, "", nil
+}
+
+func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, error) {
+	return true, nil
 }
 
 func (cuc *invoiceUseCase) CheckID(ctx context.Context, id string) (bool, error) {

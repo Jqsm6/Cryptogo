@@ -8,6 +8,7 @@ CREATE TABLE payments
     amount TEXT NOT NULL,
     to_address TEXT NOT NULL,
     from_address TEXT NOT NULL,
+    transaction_hash TEXT,
 );
 
 CREATE INDEX IF NOT EXISTS payments_idx

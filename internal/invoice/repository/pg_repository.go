@@ -53,7 +53,7 @@ func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
 }
 
 func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
-	var cm models.CountID
+	var cm models.Count
 	err := ir.db.QueryRowContext(ctx, checkID, id).Scan(&cm.Count)
 	if err != nil {
 		ir.log.Err(err).Msg("repository")
@@ -65,4 +65,29 @@ func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (ir *invoiceRepo) CheckTransactionHash(ctx context.Context, hash string) (bool, error) {
+	var cm models.Count
+	err := ir.db.QueryRowContext(ctx, checkTransactionHash, hash).Scan(&cm.Count)
+	if err != nil {
+		ir.log.Err(err).Msg("repository")
+		return false, err
+	}
+
+	if cm.Count == 1 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (ir *invoiceRepo) UpdateTransactionHash(ctx context.Context, hash, id string) error {
+	row := ir.db.QueryRowContext(ctx, updateTransactionHash, hash, id)
+	if row.Err() != nil {
+		ir.log.Err(row.Err()).Msg("repository")
+		return row.Err()
+	}
+
+	return nil
 }
