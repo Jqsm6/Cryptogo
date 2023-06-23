@@ -39,6 +39,8 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 		prpm.ToAddress = cuc.cfg.ETHRecipient
 	case "BTC":
 		prpm.ToAddress = cuc.cfg.BTCRecipient
+	case "BNB":
+		prpm.ToAddress = cuc.cfg.BNBRecipient
 	}
 
 	prpm.ID = guid
@@ -94,6 +96,24 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 		}
 	case "BTC":
 		result, hash, err := cuc.InfoBTC(pirp)
+		if err != nil {
+			return nil, err
+		}
+
+		if result {
+			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			err := cuc.repo.ChangeStatus(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			pirp.State = "paid"
+		}
+	case "BNB":
+		result, hash, err := cuc.InfoBNB(pirp)
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +203,55 @@ func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, stri
 					}
 				}
 			}
+		}
+	}
+
+	return false, "", nil
+}
+
+func (cuc *invoiceUseCase) InfoBNB(pirp *models.PaymentInfoResponse) (bool, string, error) {
+	var tm *models.BNBTransaction
+
+	url := fmt.Sprintf("https://api.bscscan.com/api?module=account&action=txlist&address=%s&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=%s", cuc.cfg.BNBRecipient, cuc.cfg.Bscscan)
+	resp, err := http.Get(url)
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return false, "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return false, "", errors.New("api did not respond with a 200 code")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return false, "", err
+	}
+
+	err = json.Unmarshal(body, &tm)
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return false, "", err
+	}
+
+	for _, t := range tm.Result {
+		bnbValue, err := strconv.Atoi(t.Value)
+		if err != nil {
+			return false, "", err
+		}
+		floatValue := float64(bnbValue) / 1000000000000000000.0
+		strValue := strconv.FormatFloat(floatValue, 'f', -1, 64)
+		if t.From == pirp.FromAddress && strValue == pirp.Amount {
+			result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+			if err != nil {
+				return false, "", nil
+			}
+			if !result {
+				return true, t.Hash, nil
+			}
+			continue
 		}
 	}
 

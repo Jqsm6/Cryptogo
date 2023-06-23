@@ -16,6 +16,8 @@ postgres:
 data:
   BTCRecipient: "1DddUC2Cv3C9RcakqoZ2a6FfLjQr9dKVDg"
   ETHRecipient: "0xb000c15b40b0da131ceac414ef5a0d73d9e9742e"
+  BNBRecipient: "0xf426a8d0a94bf039a35cee66dbf0227a7a12d11e"
 
 tokens:
   Ethplorer: "freekey"
+  Bscscan: "5SRDNKXNR2QDW3BZN97JDI6C85PPRVYZXG"

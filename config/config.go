@@ -34,10 +34,12 @@ type Postgres struct {
 type Data struct {
 	BTCRecipient string `yaml:"BTCRecipient"`
 	ETHRecipient string `yaml:"ETHRecipient"`
+	BNBRecipient string `yaml:"BNBRecipient"`
 }
 
 type Tokens struct {
 	Ethplorer string `yaml:"Ethplorer"`
+	Bscscan   string `yaml:"Bscscan"`
 }
 
 var (
