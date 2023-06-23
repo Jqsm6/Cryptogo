@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"Cryptogo/internal/models"
 	"Cryptogo/internal/status"
 	"Cryptogo/pkg/logger"
 )
@@ -20,7 +21,14 @@ func NewStatusHandlers(statusUC status.UseCase, log *logger.Logger) status.Handl
 
 func (sh *statusHandlers) GetAPIStatus() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		asModel := sh.statusUC.GetAPIStatus()
+		var em *models.ErrorResponse
+		asModel, err := sh.statusUC.GetAPIStatus()
+		if err != nil {
+			em.Error.Code = http.StatusInternalServerError
+			em.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &em)
+			return
+		}
 
 		ctx.JSON(http.StatusOK, asModel)
 	}

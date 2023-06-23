@@ -23,3 +23,7 @@ type BNBTransaction struct {
 		Value string `json:"value"`
 	} `json:"result"`
 }
+
+type BNBStatusResponse struct {
+	Status string `json:"status"`
+}
