@@ -1,5 +1,5 @@
 package http
 
 const (
-	statusAPIEndpoint = "/api"
+	statusAPI = "/api"
 )

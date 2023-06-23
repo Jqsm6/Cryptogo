@@ -21,27 +21,27 @@ func NewInvoiceHandlers(invoiceUC invoice.UseCase, log *logger.Logger) invoice.H
 
 func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var prqm *models.PaymentRequest
-		var em models.ErrorResponse
+		var paymentRequest *models.PaymentRequest
+		var errorResponse models.ErrorResponse
 
-		if err := ctx.BindJSON(&prqm); err != nil {
-			em.Error.Code = http.StatusBadRequest
-			em.Error.Message = "Invalid request body. Use the documentation."
-			ctx.JSON(http.StatusBadRequest, &em)
+		if err := ctx.BindJSON(&paymentRequest); err != nil {
+			errorResponse.Error.Code = http.StatusBadRequest
+			errorResponse.Error.Message = "Invalid request body. Use the documentation."
+			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
-		if prqm.Currency != "ETH" && prqm.Currency != "BTC" && prqm.Currency != "BNB" {
-			em.Error.Code = http.StatusBadRequest
-			em.Error.Message = "At the moment, only {'ETH', 'BTC', 'BNB'} is available."
-			ctx.JSON(http.StatusBadRequest, &em)
+		if paymentRequest.Currency != "ETH" && paymentRequest.Currency != "BTC" && paymentRequest.Currency != "BNB" {
+			errorResponse.Error.Code = http.StatusBadRequest
+			errorResponse.Error.Message = "At the moment, only 'ETH', 'BTC', 'BNB' is available."
+			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
 
-		resp, err := ch.invoiceUC.Create(ctx, prqm)
+		resp, err := ch.invoiceUC.Create(ctx, paymentRequest)
 		if err != nil {
-			em.Error.Code = http.StatusInternalServerError
-			em.Error.Message = "An error occurred on the server. Retry the request or wait."
-			ctx.JSON(http.StatusInternalServerError, &em)
+			errorResponse.Error.Code = http.StatusInternalServerError
+			errorResponse.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &errorResponse)
 			return
 		}
 
@@ -51,36 +51,36 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 
 func (ch *invoiceHandlers) Info() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var pirq *models.PaymentInfoRequest
-		var em models.ErrorResponse
+		var paymentInfoRequest *models.PaymentInfoRequest
+		var errorResponse models.ErrorResponse
 
-		if err := ctx.BindJSON(&pirq); err != nil {
-			em.Error.Code = http.StatusBadRequest
-			em.Error.Message = "Invalid request body. Use the documentation."
-			ctx.JSON(http.StatusBadRequest, &em)
+		if err := ctx.BindJSON(&paymentInfoRequest); err != nil {
+			errorResponse.Error.Code = http.StatusBadRequest
+			errorResponse.Error.Message = "Invalid request body. Use the documentation."
+			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
 
-		result, err := ch.invoiceUC.CheckID(ctx, pirq.ID)
+		result, err := ch.invoiceUC.CheckID(ctx, paymentInfoRequest.ID)
 		if err != nil {
-			em.Error.Code = http.StatusInternalServerError
-			em.Error.Message = "It was not possible to check the ID for existence. Server side error."
-			ctx.JSON(http.StatusInternalServerError, &em)
+			errorResponse.Error.Code = http.StatusInternalServerError
+			errorResponse.Error.Message = "It was not possible to check the ID for existence. Server side error."
+			ctx.JSON(http.StatusInternalServerError, &errorResponse)
 			return
 		}
 
 		if !result {
-			em.Error.Code = http.StatusBadRequest
-			em.Error.Message = "Invoice with this ID was not found."
-			ctx.JSON(http.StatusBadRequest, &em)
+			errorResponse.Error.Code = http.StatusBadRequest
+			errorResponse.Error.Message = "Invoice with this ID was not found."
+			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
 
-		resp, err := ch.invoiceUC.Info(ctx, pirq)
+		resp, err := ch.invoiceUC.Info(ctx, paymentInfoRequest)
 		if err != nil {
-			em.Error.Code = http.StatusInternalServerError
-			em.Error.Message = "An error occurred on the server. Retry the request or wait."
-			ctx.JSON(http.StatusInternalServerError, &em)
+			errorResponse.Error.Code = http.StatusInternalServerError
+			errorResponse.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &errorResponse)
 			return
 		}
 

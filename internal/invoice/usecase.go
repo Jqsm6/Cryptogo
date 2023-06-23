@@ -7,10 +7,10 @@ import (
 )
 
 type UseCase interface {
-	Create(ctx context.Context, prqm *models.PaymentRequest) (*models.PaymentResponse, error)
-	Info(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error)
-	InfoETH(pirp *models.PaymentInfoResponse) (bool, string, error)
-	InfoBTC(pirp *models.PaymentInfoResponse) (bool, string, error)
-	InfoBNB(pirp *models.PaymentInfoResponse) (bool, string, error)
+	Info(ctx context.Context, paymentInfoRequest *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error)
+	Create(ctx context.Context, paymentRequest *models.PaymentRequest) (*models.PaymentResponse, error)
+	InfoETH(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error)
+	InfoBTC(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error)
+	InfoBNB(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error)
 	CheckID(ctx context.Context, id string) (bool, error)
 }

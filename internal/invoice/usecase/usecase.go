@@ -29,61 +29,60 @@ func NewInvoiceUseCase(repo invoice.Repository, log *logger.Logger, cfg *config.
 	return &invoiceUseCase{repo: repo, log: log, cfg: cfg, bcClient: bcClient}
 }
 
-func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentRequest) (*models.PaymentResponse, error) {
-	var prpm models.PaymentResponse
+func (cuc *invoiceUseCase) Create(ctx context.Context, paymentRequest *models.PaymentRequest) (*models.PaymentResponse, error) {
+	var paymentResponse models.PaymentResponse
+
+	switch paymentRequest.Currency {
+	case "ETH":
+		paymentResponse.ToAddress = cuc.cfg.ETH
+	case "BTC":
+		paymentResponse.ToAddress = cuc.cfg.BTC
+	case "BNB":
+		paymentResponse.ToAddress = cuc.cfg.BNB
+	}
 
 	guid := xid.New().String()
+	paymentResponse.ID = guid
 
-	switch prqm.Currency {
-	case "ETH":
-		prpm.ToAddress = cuc.cfg.ETHRecipient
-	case "BTC":
-		prpm.ToAddress = cuc.cfg.BTCRecipient
-	case "BNB":
-		prpm.ToAddress = cuc.cfg.BNBRecipient
-	}
-
-	prpm.ID = guid
-
-	strAmount := strconv.FormatFloat(prqm.Amount, 'f', -1, 64)
-	pdm := models.PaymentDB{
+	amount := strconv.FormatFloat(paymentRequest.Amount, 'f', -1, 64)
+	paymentDB := models.PaymentDB{
 		ID:          guid,
 		State:       "notpayed",
-		Currency:    prqm.Currency,
-		Amount:      strAmount,
-		ToAddress:   prpm.ToAddress,
-		FromAddress: prqm.FromAddress,
+		Currency:    paymentRequest.Currency,
+		Amount:      amount,
+		ToAddress:   paymentResponse.ToAddress,
+		FromAddress: paymentRequest.FromAddress,
 	}
 
-	err := cuc.repo.Create(ctx, &pdm)
+	err := cuc.repo.Create(ctx, &paymentDB)
 	if err != nil {
 		return nil, err
 	}
 
-	return &prpm, nil
+	return &paymentResponse, nil
 }
 
-func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error) {
-	id := pirq.ID
+func (cuc *invoiceUseCase) Info(ctx context.Context, paymentInfoRequest *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error) {
+	id := paymentInfoRequest.ID
 
-	pirp, err := cuc.repo.Info(ctx, id)
+	paymentInfoResponse, err := cuc.repo.Info(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if pirp.State == "paid" {
-		return pirp, nil
+	if paymentInfoResponse.State == "paid" {
+		return paymentInfoResponse, nil
 	}
 
-	switch pirp.Currency {
+	switch paymentInfoResponse.Currency {
 	case "ETH":
-		result, hash, err := cuc.InfoETH(pirp)
+		result, hash, err := cuc.InfoETH(paymentInfoResponse)
 		if err != nil {
 			return nil, err
 		}
 
 		if result {
-			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
+			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -92,16 +91,16 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 			if err != nil {
 				return nil, err
 			}
-			pirp.State = "paid"
+			paymentInfoResponse.State = "paid"
 		}
 	case "BTC":
-		result, hash, err := cuc.InfoBTC(pirp)
+		result, hash, err := cuc.InfoBTC(paymentInfoResponse)
 		if err != nil {
 			return nil, err
 		}
 
 		if result {
-			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
+			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -110,16 +109,16 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 			if err != nil {
 				return nil, err
 			}
-			pirp.State = "paid"
+			paymentInfoResponse.State = "paid"
 		}
 	case "BNB":
-		result, hash, err := cuc.InfoBNB(pirp)
+		result, hash, err := cuc.InfoBNB(paymentInfoResponse)
 		if err != nil {
 			return nil, err
 		}
 
 		if result {
-			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
+			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -128,17 +127,17 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 			if err != nil {
 				return nil, err
 			}
-			pirp.State = "paid"
+			paymentInfoResponse.State = "paid"
 		}
 	}
 
-	return pirp, nil
+	return paymentInfoResponse, nil
 }
 
-func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, string, error) {
-	var tm []*models.ETHTransaction
+func (cuc *invoiceUseCase) InfoETH(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
+	var ethTransactions []*models.ETHTransaction
 
-	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=%s", cuc.cfg.ETHRecipient, cuc.cfg.Ethplorer)
+	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=%s", cuc.cfg.ETH, cuc.cfg.Ethplorer)
 	resp, err := http.Get(url)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
@@ -156,21 +155,21 @@ func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, stri
 		return false, "", err
 	}
 
-	err = json.Unmarshal(body, &tm)
+	err = json.Unmarshal(body, &ethTransactions)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
 		return false, "", err
 	}
 
-	for _, t := range tm {
-		str := strconv.FormatFloat(t.Value, 'f', -1, 64)
-		if t.From == pirp.FromAddress && str == pirp.Amount {
-			result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+	for _, tx := range ethTransactions {
+		amount := strconv.FormatFloat(tx.Value, 'f', -1, 64)
+		if tx.From == paymentInfoResponse.FromAddress && amount == paymentInfoResponse.Amount {
+			result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
 			if err != nil {
 				return false, "", nil
 			}
 			if !result {
-				return true, t.Hash, nil
+				return true, tx.Hash, nil
 			}
 			continue
 		}
@@ -179,25 +178,25 @@ func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, stri
 	return false, "", nil
 }
 
-func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, string, error) {
-	address, err := cuc.bcClient.GetAddress(cuc.cfg.BTCRecipient)
+func (cuc *invoiceUseCase) InfoBTC(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
+	address, err := cuc.bcClient.GetAddress(cuc.cfg.BTC)
 	if err != nil {
 		return false, "", err
 	}
 
-	for _, t := range address.Txs {
-		for _, i := range t.Inputs {
-			if i.PrevOut.Addr == pirp.FromAddress {
-				for _, o := range t.Out {
-					btcValue := float64(o.Value) / 100000000.0
-					strValue := strconv.FormatFloat(btcValue, 'f', -1, 64)
-					if o.Addr == cuc.cfg.BTCRecipient && strValue == pirp.Amount {
-						result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+	for _, tx := range address.Txs {
+		for _, i := range tx.Inputs {
+			if i.PrevOut.Addr == paymentInfoResponse.FromAddress {
+				for _, o := range tx.Out {
+					amount := float64(o.Value) / 100000000.0
+					stringAmount := strconv.FormatFloat(amount, 'f', -1, 64)
+					if o.Addr == cuc.cfg.BTC && stringAmount == paymentInfoResponse.Amount {
+						result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
 						if err != nil {
 							return false, "", nil
 						}
 						if !result {
-							return true, t.Hash, nil
+							return true, tx.Hash, nil
 						}
 						continue
 					}
@@ -209,10 +208,10 @@ func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, stri
 	return false, "", nil
 }
 
-func (cuc *invoiceUseCase) InfoBNB(pirp *models.PaymentInfoResponse) (bool, string, error) {
-	var tm *models.BNBTransaction
+func (cuc *invoiceUseCase) InfoBNB(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
+	var address *models.BNBTransaction
 
-	url := fmt.Sprintf("https://api.bscscan.com/api?module=account&action=txlist&address=%s&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=%s", cuc.cfg.BNBRecipient, cuc.cfg.Bscscan)
+	url := fmt.Sprintf("https://api.bscscan.com/api?module=account&action=txlist&address=%s&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=%s", cuc.cfg.BNB, cuc.cfg.Bscscan)
 	resp, err := http.Get(url)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
@@ -230,26 +229,26 @@ func (cuc *invoiceUseCase) InfoBNB(pirp *models.PaymentInfoResponse) (bool, stri
 		return false, "", err
 	}
 
-	err = json.Unmarshal(body, &tm)
+	err = json.Unmarshal(body, &address)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
 		return false, "", err
 	}
 
-	for _, t := range tm.Result {
-		bnbValue, err := strconv.Atoi(t.Value)
+	for _, tx := range address.Result {
+		amount, err := strconv.Atoi(tx.Value)
 		if err != nil {
 			return false, "", err
 		}
-		floatValue := float64(bnbValue) / 1000000000000000000.0
-		strValue := strconv.FormatFloat(floatValue, 'f', -1, 64)
-		if t.From == pirp.FromAddress && strValue == pirp.Amount {
-			result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+		floatAmount := float64(amount) / 1000000000000000000.0
+		stringAmount := strconv.FormatFloat(floatAmount, 'f', -1, 64)
+		if tx.From == paymentInfoResponse.FromAddress && stringAmount == paymentInfoResponse.Amount {
+			result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
 			if err != nil {
 				return false, "", nil
 			}
 			if !result {
-				return true, t.Hash, nil
+				return true, tx.Hash, nil
 			}
 			continue
 		}

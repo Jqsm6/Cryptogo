@@ -19,9 +19,9 @@ func NewInvoiceRepository(db *sqlx.DB, log *logger.Logger) invoice.Repository {
 	return &invoiceRepo{db: db, log: log}
 }
 
-func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error {
-	row := ir.db.QueryRowContext(ctx, createInvoice, pdm.ID, pdm.State, pdm.Currency, pdm.Amount,
-		pdm.ToAddress, pdm.FromAddress)
+func (ir *invoiceRepo) Create(ctx context.Context, paymentDB *models.PaymentDB) error {
+	row := ir.db.QueryRowContext(ctx, create, paymentDB.ID, paymentDB.State, paymentDB.Currency, paymentDB.Amount,
+		paymentDB.ToAddress, paymentDB.FromAddress)
 	if row.Err() != nil {
 		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()
@@ -31,19 +31,20 @@ func (ir *invoiceRepo) Create(ctx context.Context, pdm *models.PaymentDB) error 
 }
 
 func (ir *invoiceRepo) Info(ctx context.Context, id string) (*models.PaymentInfoResponse, error) {
-	var pirp models.PaymentInfoResponse
+	var paymentInfoResponse models.PaymentInfoResponse
 
-	err := ir.db.QueryRowContext(ctx, infoInvoice, id).Scan(&pirp.ID, &pirp.State, &pirp.ToAddress, &pirp.Amount, &pirp.Currency, &pirp.FromAddress)
+	err := ir.db.QueryRowContext(ctx, info, id).Scan(&paymentInfoResponse.ID, &paymentInfoResponse.State, 
+		&paymentInfoResponse.ToAddress, &paymentInfoResponse.Amount, &paymentInfoResponse.Currency, &paymentInfoResponse.FromAddress)
 	if err != nil {
 		ir.log.Err(err).Msg("repository")
 		return nil, err
 	}
 
-	return &pirp, nil
+	return &paymentInfoResponse, nil
 }
 
 func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
-	row := ir.db.QueryRowContext(ctx, changeInvoiceState, id)
+	row := ir.db.QueryRowContext(ctx, changeState, id)
 	if row.Err() != nil {
 		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()
@@ -53,37 +54,37 @@ func (ir *invoiceRepo) ChangeStatus(ctx context.Context, id string) error {
 }
 
 func (ir *invoiceRepo) CheckID(ctx context.Context, id string) (bool, error) {
-	var cm models.Count
-	err := ir.db.QueryRowContext(ctx, checkID, id).Scan(&cm.Count)
+	var count models.Count
+	err := ir.db.QueryRowContext(ctx, checkID, id).Scan(&count.Count)
 	if err != nil {
 		ir.log.Err(err).Msg("repository")
 		return false, err
 	}
 
-	if cm.Count == 1 {
+	if count.Count == 1 {
 		return true, nil
 	}
 
 	return false, nil
 }
 
-func (ir *invoiceRepo) CheckTransactionHash(ctx context.Context, hash string) (bool, error) {
-	var cm models.Count
-	err := ir.db.QueryRowContext(ctx, checkTransactionHash, hash).Scan(&cm.Count)
+func (ir *invoiceRepo) CheckHash(ctx context.Context, hash string) (bool, error) {
+	var count models.Count
+	err := ir.db.QueryRowContext(ctx, checkHash, hash).Scan(&count.Count)
 	if err != nil {
 		ir.log.Err(err).Msg("repository")
 		return false, err
 	}
 
-	if cm.Count == 1 {
+	if count.Count == 1 {
 		return true, nil
 	}
 
 	return false, nil
 }
 
-func (ir *invoiceRepo) UpdateTransactionHash(ctx context.Context, hash, id string) error {
-	row := ir.db.QueryRowContext(ctx, updateTransactionHash, hash, id)
+func (ir *invoiceRepo) UpdateHash(ctx context.Context, hash, id string) error {
+	row := ir.db.QueryRowContext(ctx, updateHash, hash, id)
 	if row.Err() != nil {
 		ir.log.Err(row.Err()).Msg("repository")
 		return row.Err()

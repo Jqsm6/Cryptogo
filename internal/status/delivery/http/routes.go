@@ -7,5 +7,5 @@ import (
 )
 
 func MapStatusRoutes(group *gin.RouterGroup, h status.Handlers) {
-	group.GET(statusAPIEndpoint, h.GetAPIStatus())
+	group.GET(statusAPI, h.GetAPIStatus())
 }

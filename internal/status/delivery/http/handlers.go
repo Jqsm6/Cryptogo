@@ -21,15 +21,15 @@ func NewStatusHandlers(statusUC status.UseCase, log *logger.Logger) status.Handl
 
 func (sh *statusHandlers) GetAPIStatus() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var em *models.ErrorResponse
-		asModel, err := sh.statusUC.GetAPIStatus()
+		var errorResponse *models.ErrorResponse
+		status, err := sh.statusUC.GetAPIStatus()
 		if err != nil {
-			em.Error.Code = http.StatusInternalServerError
-			em.Error.Message = "An error occurred on the server. Retry the request or wait."
-			ctx.JSON(http.StatusInternalServerError, &em)
+			errorResponse.Error.Code = http.StatusInternalServerError
+			errorResponse.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &errorResponse)
 			return
 		}
 
-		ctx.JSON(http.StatusOK, asModel)
+		ctx.JSON(http.StatusOK, status)
 	}
 }

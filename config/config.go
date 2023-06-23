@@ -8,10 +8,10 @@ import (
 )
 
 type Config struct {
-	Server   `yaml:"server"`
-	Postgres `yaml:"postgres"`
-	Data     `yaml:"data"`
-	Tokens   `yaml:"tokens"`
+	Server    `yaml:"server"`
+	Postgres  `yaml:"postgres"`
+	Addresses `yaml:"addresses"`
+	Tokens    `yaml:"tokens"`
 }
 
 type Server struct {
@@ -31,10 +31,10 @@ type Postgres struct {
 	PgDriver           string `yaml:"PgDriver"`
 }
 
-type Data struct {
-	BTCRecipient string `yaml:"BTCRecipient"`
-	ETHRecipient string `yaml:"ETHRecipient"`
-	BNBRecipient string `yaml:"BNBRecipient"`
+type Addresses struct {
+	BTC string `yaml:"BTC"`
+	ETH string `yaml:"ETH"`
+	BNB string `yaml:"BNB"`
 }
 
 type Tokens struct {

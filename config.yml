@@ -13,10 +13,10 @@ postgres:
   PostgreSQLDBName: "cryptogo_db"
   PgDriver: "pgx"
 
-data:
-  BTCRecipient: "1DddUC2Cv3C9RcakqoZ2a6FfLjQr9dKVDg"
-  ETHRecipient: "0xb000c15b40b0da131ceac414ef5a0d73d9e9742e"
-  BNBRecipient: "0xf426a8d0a94bf039a35cee66dbf0227a7a12d11e"
+addresses:
+  BTC: "1DddUC2Cv3C9RcakqoZ2a6FfLjQr9dKVDg"
+  ETH: "0xb000c15b40b0da131ceac414ef5a0d73d9e9742e"
+  BNB: "0xf426a8d0a94bf039a35cee66dbf0227a7a12d11e"
 
 tokens:
   Ethplorer: "freekey"

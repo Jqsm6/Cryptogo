@@ -1,6 +1,6 @@
 package http
 
 const (
-	createInvoiceEndpoint = "/invoice/create"
-	infoInvoiceEndpoint   = "/invoice/info"
+	createInvoice = "/invoice/create"
+	infoInvoice   = "/invoice/info"
 )
