@@ -11,10 +11,7 @@ type Count struct {
 }
 
 type ETHTransaction struct {
-	Hash    string  `json:"hash"`
-	From    string  `json:"from"`
-	Value   float64 `json:"value"`
-}
-
-type BTCTransaction struct {
+	Hash  string  `json:"hash"`
+	From  string  `json:"from"`
+	Value float64 `json:"value"`
 }

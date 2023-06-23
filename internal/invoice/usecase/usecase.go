@@ -35,8 +35,6 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	switch prqm.Currency {
 	case "ETH":
 		prpm.ToAddress = cuc.cfg.ETHRecipient
-	case "BTC":
-		prpm.ToAddress = cuc.cfg.BTCRecipient
 	}
 
 	prpm.ID = guid
@@ -79,31 +77,11 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 		}
 
 		if result {
-			resultHash, err := cuc.repo.CheckTransactionHash(context.Background(), hash)
+			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
 			if err != nil {
 				return nil, err
 			}
 
-			if !resultHash {
-				err = cuc.repo.UpdateTransactionHash(context.Background(), hash, pirp.ID)
-				if err != nil {
-					return nil, err
-				}
-
-				err := cuc.repo.ChangeStatus(ctx, id)
-				if err != nil {
-					return nil, err
-				}
-				pirp.State = "paid"
-			}
-		}
-	case "BTC":
-		result, err := cuc.InfoBTC(pirp)
-		if err != nil {
-			return nil, err
-		}
-
-		if result {
 			err := cuc.repo.ChangeStatus(ctx, id)
 			if err != nil {
 				return nil, err
@@ -157,10 +135,6 @@ func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, stri
 	}
 
 	return false, "", nil
-}
-
-func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, error) {
-	return true, nil
 }
 
 func (cuc *invoiceUseCase) CheckID(ctx context.Context, id string) (bool, error) {

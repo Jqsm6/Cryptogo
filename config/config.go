@@ -33,7 +33,6 @@ type Postgres struct {
 
 type Data struct {
 	ETHRecipient string `yaml:"ETHRecipient"`
-	BTCRecipient string `yaml:"BTCRecipient"`
 }
 
 type Tokens struct {

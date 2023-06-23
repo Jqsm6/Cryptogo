@@ -10,6 +10,5 @@ type UseCase interface {
 	Create(ctx context.Context, prqm *models.PaymentRequest) (*models.PaymentResponse, error)
 	Info(ctx context.Context, pirq *models.PaymentInfoRequest) (*models.PaymentInfoResponse, error)
 	InfoETH(pirp *models.PaymentInfoResponse) (bool, string, error)
-	InfoBTC(pirp *models.PaymentInfoResponse) (bool, error)
 	CheckID(ctx context.Context, id string) (bool, error)
 }

@@ -15,7 +15,6 @@ postgres:
 
 data:
   ETHRecipient: "0xb000c15b40b0da131ceac414ef5a0d73d9e9742e"
-  BTCRecipient: ""
 
 tokens:
   Ethplorer: "freekey"
