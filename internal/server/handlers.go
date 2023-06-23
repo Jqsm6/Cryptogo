@@ -14,7 +14,7 @@ import (
 func (s *Server) MapHandlers(g *gin.Engine) {
 	iRepo := invoiceRepository.NewInvoiceRepository(s.db, s.log)
 
-	iUC := invoiceUC.NewInvoiceUseCase(iRepo, s.log, s.cfg)
+	iUC := invoiceUC.NewInvoiceUseCase(iRepo, s.log, s.cfg, s.bcClient)
 	sUC := statusUC.NewStatusUseCase(s.log, s.cfg)
 
 	iHandlers := invoiceHandlers.NewInvoiceHandlers(iUC, s.log)

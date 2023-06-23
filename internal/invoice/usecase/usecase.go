@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/rs/xid"
+	"github.com/xorcare/blockchain"
 
 	"Cryptogo/config"
 	"Cryptogo/internal/invoice"
@@ -18,13 +19,14 @@ import (
 )
 
 type invoiceUseCase struct {
-	repo invoice.Repository
-	log  *logger.Logger
-	cfg  *config.Config
+	repo     invoice.Repository
+	log      *logger.Logger
+	cfg      *config.Config
+	bcClient *blockchain.Client
 }
 
-func NewInvoiceUseCase(repo invoice.Repository, log *logger.Logger, cfg *config.Config) invoice.UseCase {
-	return &invoiceUseCase{repo: repo, log: log, cfg: cfg}
+func NewInvoiceUseCase(repo invoice.Repository, log *logger.Logger, cfg *config.Config, bcClient *blockchain.Client) invoice.UseCase {
+	return &invoiceUseCase{repo: repo, log: log, cfg: cfg, bcClient: bcClient}
 }
 
 func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentRequest) (*models.PaymentResponse, error) {
@@ -35,6 +37,8 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, prqm *models.PaymentReque
 	switch prqm.Currency {
 	case "ETH":
 		prpm.ToAddress = cuc.cfg.ETHRecipient
+	case "BTC":
+		prpm.ToAddress = cuc.cfg.BTCRecipient
 	}
 
 	prpm.ID = guid
@@ -72,6 +76,24 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, pirq *models.PaymentInfoReq
 	switch pirp.Currency {
 	case "ETH":
 		result, hash, err := cuc.InfoETH(pirp)
+		if err != nil {
+			return nil, err
+		}
+
+		if result {
+			err = cuc.repo.UpdateTransactionHash(ctx, hash, pirp.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			err := cuc.repo.ChangeStatus(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			pirp.State = "paid"
+		}
+	case "BTC":
+		result, hash, err := cuc.InfoBTC(pirp)
 		if err != nil {
 			return nil, err
 		}
@@ -131,6 +153,36 @@ func (cuc *invoiceUseCase) InfoETH(pirp *models.PaymentInfoResponse) (bool, stri
 				return true, t.Hash, nil
 			}
 			continue
+		}
+	}
+
+	return false, "", nil
+}
+
+func (cuc *invoiceUseCase) InfoBTC(pirp *models.PaymentInfoResponse) (bool, string, error) {
+	address, err := cuc.bcClient.GetAddress(cuc.cfg.BTCRecipient)
+	if err != nil {
+		return false, "", err
+	}
+
+	for _, t := range address.Txs {
+		for _, i := range t.Inputs {
+			if i.PrevOut.Addr == pirp.FromAddress {
+				for _, o := range t.Out {
+					btcValue := float64(o.Value) / 100000000.0
+					strValue := strconv.FormatFloat(btcValue, 'f', -1, 64)
+					if o.Addr == cuc.cfg.BTCRecipient && strValue == pirp.Amount {
+						result, err := cuc.repo.CheckTransactionHash(context.Background(), t.Hash)
+						if err != nil {
+							return false, "", nil
+						}
+						if !result {
+							return true, t.Hash, nil
+						}
+						continue
+					}
+				}
+			}
 		}
 	}
 

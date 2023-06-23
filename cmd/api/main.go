@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/xorcare/blockchain"
 
 	"Cryptogo/config"
 	"Cryptogo/internal/db/postgres"
@@ -23,8 +24,10 @@ func main() {
 	}
 	defer db.Close()
 
+	bcClient := blockchain.New()
+
 	g := gin.New()
-	s := server.NewServer(g, cfg, db, log)
+	s := server.NewServer(g, cfg, db, log, bcClient)
 
 	s.Run()
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	cl "github.com/xlab/closer"
+	"github.com/xorcare/blockchain"
 
 	"Cryptogo/config"
 	"Cryptogo/pkg/logger"
@@ -18,14 +19,15 @@ import (
 var server *http.Server
 
 type Server struct {
-	gin *gin.Engine
-	cfg *config.Config
-	db  *sqlx.DB
-	log *logger.Logger
+	gin      *gin.Engine
+	cfg      *config.Config
+	db       *sqlx.DB
+	log      *logger.Logger
+	bcClient *blockchain.Client
 }
 
-func NewServer(gin *gin.Engine, cfg *config.Config, db *sqlx.DB, log *logger.Logger) *Server {
-	return &Server{gin: gin, cfg: cfg, db: db, log: log}
+func NewServer(gin *gin.Engine, cfg *config.Config, db *sqlx.DB, log *logger.Logger, bcClient *blockchain.Client) *Server {
+	return &Server{gin: gin, cfg: cfg, db: db, log: log, bcClient: bcClient}
 }
 
 func (s *Server) Run() error {

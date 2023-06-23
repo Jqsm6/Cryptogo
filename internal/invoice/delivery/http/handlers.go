@@ -30,9 +30,9 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, &em)
 			return
 		}
-		if prqm.Currency != "ETH" {
+		if prqm.Currency != "ETH" && prqm.Currency != "BTC" {
 			em.Error.Code = http.StatusBadRequest
-			em.Error.Message = "At the moment, only 'ETH' is available."
+			em.Error.Message = "At the moment, only {'ETH', 'BTC'} is available."
 			ctx.JSON(http.StatusBadRequest, &em)
 			return
 		}

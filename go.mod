@@ -10,6 +10,7 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/rs/zerolog v1.29.1
 	github.com/xlab/closer v1.1.0
+	github.com/xorcare/blockchain v1.0.2
 )
 
 require (
