@@ -30,9 +30,9 @@ func (ch *invoiceHandlers) Create() gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
-		if paymentRequest.Currency != "ETH" && paymentRequest.Currency != "BTC" && paymentRequest.Currency != "BNB" {
+		if paymentRequest.Currency != "ETH" {
 			errorResponse.Error.Code = http.StatusBadRequest
-			errorResponse.Error.Message = "At the moment, only 'ETH', 'BTC', 'BNB' is available."
+			errorResponse.Error.Message = "At the moment, only 'ETH' is available."
 			ctx.JSON(http.StatusBadRequest, &errorResponse)
 			return
 		}
@@ -85,5 +85,35 @@ func (ch *invoiceHandlers) Info() gin.HandlerFunc {
 		}
 
 		ctx.JSON(http.StatusOK, resp)
+	}
+}
+
+func (ch *invoiceHandlers) Confirm() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var paymentConfirmRequest *models.PaymentConfirmRequest
+		var errorResponse models.ErrorResponse
+
+		if err := ctx.BindJSON(&paymentConfirmRequest); err != nil {
+			errorResponse.Error.Code = http.StatusBadRequest
+			errorResponse.Error.Message = "Invalid request body. Use the documentation."
+			ctx.JSON(http.StatusBadRequest, &errorResponse)
+			return
+		}
+
+		paymentConfirmResponse, err := ch.invoiceUC.ConfirmETH(ctx, paymentConfirmRequest)
+		if err != nil {
+			if err.Error() == "was earlier" {
+				errorResponse.Error.Code = http.StatusBadRequest
+				errorResponse.Error.Message = "This hash has already been paid."
+				ctx.JSON(http.StatusBadRequest, &errorResponse)
+				return
+			}
+			errorResponse.Error.Code = http.StatusInternalServerError
+			errorResponse.Error.Message = "An error occurred on the server. Retry the request or wait."
+			ctx.JSON(http.StatusInternalServerError, &errorResponse)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, paymentConfirmResponse)
 	}
 }

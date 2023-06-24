@@ -13,4 +13,5 @@ type Repository interface {
 	CheckID(ctx context.Context, id string) (bool, error)
 	CheckHash(ctx context.Context, hash string) (bool, error)
 	UpdateHash(ctx context.Context, hash, id string) error
+	Get(ctx context.Context, id string) (models.InfoDB, error)
 }

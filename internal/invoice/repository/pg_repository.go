@@ -92,3 +92,14 @@ func (ir *invoiceRepo) UpdateHash(ctx context.Context, hash, id string) error {
 
 	return nil
 }
+
+func (ir *invoiceRepo) Get(ctx context.Context, id string) (models.InfoDB, error) {
+	var info models.InfoDB
+	err := ir.db.QueryRowContext(ctx, get, id).Scan(&info.FromAddress, &info.ToAddress, &info.Amount)
+	if err != nil {
+		ir.log.Err(err).Msg("repository")
+		return info, err
+	}
+
+	return info, nil
+}

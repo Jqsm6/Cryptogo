@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,9 +9,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/rs/xid"
-	"github.com/xorcare/blockchain"
 
 	"Cryptogo/config"
 	"Cryptogo/internal/invoice"
@@ -19,14 +20,13 @@ import (
 )
 
 type invoiceUseCase struct {
-	repo     invoice.Repository
-	log      *logger.Logger
-	cfg      *config.Config
-	bcClient *blockchain.Client
+	repo invoice.Repository
+	log  *logger.Logger
+	cfg  *config.Config
 }
 
-func NewInvoiceUseCase(repo invoice.Repository, log *logger.Logger, cfg *config.Config, bcClient *blockchain.Client) invoice.UseCase {
-	return &invoiceUseCase{repo: repo, log: log, cfg: cfg, bcClient: bcClient}
+func NewInvoiceUseCase(repo invoice.Repository, log *logger.Logger, cfg *config.Config) invoice.UseCase {
+	return &invoiceUseCase{repo: repo, log: log, cfg: cfg}
 }
 
 func (cuc *invoiceUseCase) Create(ctx context.Context, paymentRequest *models.PaymentRequest) (*models.PaymentResponse, error) {
@@ -34,11 +34,7 @@ func (cuc *invoiceUseCase) Create(ctx context.Context, paymentRequest *models.Pa
 
 	switch paymentRequest.Currency {
 	case "ETH":
-		paymentResponse.ToAddress = cuc.cfg.ETH
-	case "BTC":
-		paymentResponse.ToAddress = cuc.cfg.BTC
-	case "BNB":
-		paymentResponse.ToAddress = cuc.cfg.BNB
+		paymentResponse.ToAddress = paymentRequest.ToAddress
 	}
 
 	guid := xid.New().String()
@@ -70,191 +66,99 @@ func (cuc *invoiceUseCase) Info(ctx context.Context, paymentInfoRequest *models.
 		return nil, err
 	}
 
-	if paymentInfoResponse.State == "paid" {
-		return paymentInfoResponse, nil
-	}
-
-	switch paymentInfoResponse.Currency {
-	case "ETH":
-		result, hash, err := cuc.InfoETH(paymentInfoResponse)
-		if err != nil {
-			return nil, err
-		}
-
-		if result {
-			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			err := cuc.repo.ChangeStatus(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			paymentInfoResponse.State = "paid"
-		}
-	case "BTC":
-		result, hash, err := cuc.InfoBTC(paymentInfoResponse)
-		if err != nil {
-			return nil, err
-		}
-
-		if result {
-			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			err := cuc.repo.ChangeStatus(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			paymentInfoResponse.State = "paid"
-		}
-	case "BNB":
-		result, hash, err := cuc.InfoBNB(paymentInfoResponse)
-		if err != nil {
-			return nil, err
-		}
-
-		if result {
-			err = cuc.repo.UpdateHash(ctx, hash, paymentInfoResponse.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			err := cuc.repo.ChangeStatus(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			paymentInfoResponse.State = "paid"
-		}
-	}
-
 	return paymentInfoResponse, nil
 }
 
-func (cuc *invoiceUseCase) InfoETH(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
-	var ethTransactions []*models.ETHTransaction
-
-	url := fmt.Sprintf("https://api.ethplorer.io/getAddressTransactions/%s?apiKey=%s", cuc.cfg.ETH, cuc.cfg.Ethplorer)
-	resp, err := http.Get(url)
+func (cuc *invoiceUseCase) ConfirmETH(ctx context.Context, paymentConfirmRequest *models.PaymentConfirmRequest) (*models.PaymentConfirmResponse, error) {
+	var ethTransaction *models.ETHTransaction
+	var paymentConfirmResponse models.PaymentConfirmResponse
+	result, err := cuc.repo.CheckHash(ctx, paymentConfirmRequest.TxHash)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
+		return nil, err
+	}
+
+	if result {
+		return nil, errors.New("was earlier")
+	}
+
+	node := fmt.Sprintf("https://eth.getblock.io/%s/mainnet/", cuc.cfg.Ethereum)
+	requestBody := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "eth_getTransactionByHash",
+		"params": []interface{}{
+			paymentConfirmRequest.TxHash,
+		},
+		"id": 1,
+	}
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", node, bytes.NewBuffer(jsonData))
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		cuc.log.Err(err).Msg("usecase")
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return false, "", errors.New("api did not respond with a 200 code")
-	}
-
-	body, err := io.ReadAll(resp.Body)
+	responseData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
+		return nil, err
 	}
 
-	err = json.Unmarshal(body, &ethTransactions)
+	err = json.Unmarshal(responseData, &ethTransaction)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
+		return nil, err
 	}
 
-	for _, tx := range ethTransactions {
-		amount := strconv.FormatFloat(tx.Value, 'f', -1, 64)
-		if tx.From == paymentInfoResponse.FromAddress && amount == paymentInfoResponse.Amount {
-			result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
-			if err != nil {
-				return false, "", nil
-			}
-			if !result {
-				return true, tx.Hash, nil
-			}
-			continue
-		}
-	}
-
-	return false, "", nil
-}
-
-func (cuc *invoiceUseCase) InfoBTC(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
-	address, err := cuc.bcClient.GetAddress(cuc.cfg.BTC)
+	infoDB, err := cuc.repo.Get(ctx, paymentConfirmRequest.ID)
 	if err != nil {
-		return false, "", err
+		return nil, err
 	}
 
-	for _, tx := range address.Txs {
-		for _, i := range tx.Inputs {
-			if i.PrevOut.Addr == paymentInfoResponse.FromAddress {
-				for _, o := range tx.Out {
-					amount := float64(o.Value) / 100000000.0
-					stringAmount := strconv.FormatFloat(amount, 'f', -1, 64)
-					if o.Addr == cuc.cfg.BTC && stringAmount == paymentInfoResponse.Amount {
-						result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
-						if err != nil {
-							return false, "", nil
-						}
-						if !result {
-							return true, tx.Hash, nil
-						}
-						continue
-					}
-				}
-			}
-		}
-	}
-
-	return false, "", nil
-}
-
-func (cuc *invoiceUseCase) InfoBNB(paymentInfoResponse *models.PaymentInfoResponse) (bool, string, error) {
-	var address *models.BNBTransaction
-
-	url := fmt.Sprintf("https://api.bscscan.com/api?module=account&action=txlist&address=%s&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=%s", cuc.cfg.BNB, cuc.cfg.Bscscan)
-	resp, err := http.Get(url)
+	stringAmount := ethTransaction.Result.Value[2:]
+	intAmount, err := strconv.ParseInt(stringAmount, 16, 64)
 	if err != nil {
 		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
+		return nil, err
 	}
-	defer resp.Body.Close()
+	floatAmount := float64(intAmount) / 1000000000000000000.0
+	stringAmount = strconv.FormatFloat(floatAmount, 'f', -1, 64)
 
-	if resp.StatusCode != 200 {
-		return false, "", errors.New("api did not respond with a 200 code")
-	}
+	if ethTransaction.Result.From == strings.ToLower(infoDB.FromAddress) && ethTransaction.Result.To == strings.ToLower(infoDB.ToAddress) && stringAmount == infoDB.Amount {
+		paymentConfirmResponse.State = "found"
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
-	}
-
-	err = json.Unmarshal(body, &address)
-	if err != nil {
-		cuc.log.Err(err).Msg("usecase")
-		return false, "", err
-	}
-
-	for _, tx := range address.Result {
-		amount, err := strconv.Atoi(tx.Value)
+		err := cuc.repo.ChangeStatus(ctx, paymentConfirmRequest.ID)
 		if err != nil {
-			return false, "", err
+			cuc.log.Err(err).Msg("usecase")
+			return nil, err
 		}
-		floatAmount := float64(amount) / 1000000000000000000.0
-		stringAmount := strconv.FormatFloat(floatAmount, 'f', -1, 64)
-		if tx.From == paymentInfoResponse.FromAddress && stringAmount == paymentInfoResponse.Amount {
-			result, err := cuc.repo.CheckHash(context.Background(), tx.Hash)
-			if err != nil {
-				return false, "", nil
-			}
-			if !result {
-				return true, tx.Hash, nil
-			}
-			continue
-		}
-	}
 
-	return false, "", nil
+		err = cuc.repo.UpdateHash(ctx, paymentConfirmRequest.TxHash, paymentConfirmRequest.ID)
+		if err != nil {
+			cuc.log.Err(err).Msg("usecase")
+			return nil, err
+		}
+
+		return &paymentConfirmResponse, nil
+	}
+	paymentConfirmResponse.State = "notfound"
+
+	return &paymentConfirmResponse, nil
 }
 
 func (cuc *invoiceUseCase) CheckID(ctx context.Context, id string) (bool, error) {

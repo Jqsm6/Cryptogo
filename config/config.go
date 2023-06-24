@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	Server    `yaml:"server"`
-	Postgres  `yaml:"postgres"`
-	Addresses `yaml:"addresses"`
-	Tokens    `yaml:"tokens"`
+	Server   `yaml:"server"`
+	Postgres `yaml:"postgres"`
+	Nodes    `yaml:"nodes"`
 }
 
 type Server struct {
@@ -31,15 +30,9 @@ type Postgres struct {
 	PgDriver           string `yaml:"PgDriver"`
 }
 
-type Addresses struct {
-	BTC string `yaml:"BTC"`
-	ETH string `yaml:"ETH"`
-	BNB string `yaml:"BNB"`
-}
-
-type Tokens struct {
-	Ethplorer string `yaml:"Ethplorer"`
-	Bscscan   string `yaml:"Bscscan"`
+type Nodes struct {
+	Ethereum string `yaml:"Ethereum"`
+	Bitcoin  string `yaml:"Bitcoin"`
 }
 
 var (

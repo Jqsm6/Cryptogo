@@ -7,4 +7,5 @@ const (
 	checkID     = `SELECT COUNT(*) FROM payments WHERE invoice_id = $1`
 	checkHash   = `SELECT COUNT(*) FROM payments WHERE transaction_hash = $1`
 	updateHash  = `UPDATE payments SET transaction_hash = $1 WHERE invoice_id = $2`
+	get         = `SELECT from_address, to_address, amount FROM payments WHERE invoice_id = $1`
 )
