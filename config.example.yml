@@ -9,8 +9,8 @@ postgres:
   PostgreSQLHost: "localhost"
   PostgreSQLPort: "5432"
   PostgreSQLUser: "postgres"
-  PostgreSQLPassword: "root"
-  PostgreSQLDBName: "cryptogo_db"
+  PostgreSQLPassword: "postgres"
+  PostgreSQLDBName: "db"
   PgDriver: "pgx"
 
 addresses:
@@ -20,4 +20,4 @@ addresses:
 
 tokens:
   Ethplorer: "freekey"
-  Bscscan: "5SRDNKXNR2QDW3BZN97JDI6C85PPRVYZXG"
+  Bscscan: ""
