@@ -1,5 +1,3 @@
-Get information about the invoice.
-
 #### Request
 
 - URL: `GET /v1/invoice/info`

@@ -1,5 +1,3 @@
-Creates a new invoice based on the payment request.
-
 #### Request
 
 - URL: `POST /v1/invoice/create`
