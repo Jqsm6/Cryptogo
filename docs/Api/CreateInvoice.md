@@ -20,7 +20,7 @@ Example:
 
 #### Response
 
-- Status Code: `201 CREATED`
+- Status Code: `201 Created`
 - Body:
   - `id` (string): ID of the created invoice
   - `to_address` (string): address to pay the invoice
